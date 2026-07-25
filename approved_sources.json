@@ -1,0 +1,9 @@
+{
+  "sources": {
+    "primary_document": {
+      "kind": "file",
+      "path": "C:\\Users\\atulm\\Downloads\\resumenew (10).pdf",
+      "allowed_extensions": [".pdf"]
+    }
+  }
+}

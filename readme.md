@@ -34,3 +34,11 @@ LangGraph Workflow Orchestrator
              +--> Corrected CSS/XPath selector
              |
              +--> Retry failed action
+
+## Document Assistant
+
+The Streamlit dashboard also includes a Document Assistant. It launches the local
+`approved_sources_mcp_server.py` over stdio and reads the `primary_document` source
+from `approved_sources.json`. Add other explicitly approved file or directory
+sources to that configuration when needed. The MCP server does not accept
+arbitrary absolute paths and cannot read outside configured sources.

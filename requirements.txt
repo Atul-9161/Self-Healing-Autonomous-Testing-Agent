@@ -3,3 +3,5 @@ playwright
 openai
 langgraph
 python-dotenv
+mcp[cli]
+pypdf

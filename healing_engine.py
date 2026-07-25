@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import json
@@ -8,12 +9,12 @@ from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
-
+    
 
 GROQ_API_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 # Keeps DOM-based healing requests below the Groq free-plan token envelope.
-MAX_DOM_CHARS = 32_000
+MAX_DOM_CHARS = 18_000
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class HealingEngine:
             timeout=90.0,
             max_retries=2,
         )
+        
 
     def create_plan(self, url: str, task: str) -> list[dict[str, str]]:
         """
@@ -114,7 +116,7 @@ Requirements:
         """
         Inspects the current page HTML and returns one corrected CSS/XPath selector.
         """
-        trimmed_dom = dom_snapshot[:MAX_DOM_CHARS]
+        trimmed_dom = self._prepare_dom_context(dom_snapshot, action_description)
 
         prompt = f"""
 You are a self-healing Playwright locator expert. A browser action failed because
@@ -191,6 +193,7 @@ Rules:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
+            max_tokens=600,
         )
 
         response_text = response.choices[0].message.content
@@ -206,6 +209,43 @@ Rules:
             raise RuntimeError("Groq returned JSON with an unexpected structure.")
 
         return parsed
+
+    @staticmethod
+    def _prepare_dom_context(dom_snapshot: str, action_description: str) -> str:
+        """Remove high-volume non-UI markup while preserving likely target snippets."""
+        compact_dom = re.sub(r"<!--.*?-->", " ", dom_snapshot, flags=re.DOTALL)
+        compact_dom = re.sub(
+            r"<(script|style|noscript|svg|template|iframe)\b[^>]*>.*?</\1>",
+            " ",
+            compact_dom,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        compact_dom = re.sub(r"\s+", " ", compact_dom).strip()
+
+        if len(compact_dom) <= MAX_DOM_CHARS:
+            return compact_dom
+
+        excerpts = [compact_dom[:3_000]]
+        terms = {
+            term.lower()
+            for term in re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{3,}", action_description)
+            if term.lower() not in {"click", "using", "with", "from", "result", "visible"}
+        }
+
+        for term in terms:
+            match = re.search(re.escape(term), compact_dom, flags=re.IGNORECASE)
+            if match is None:
+                continue
+
+            start = max(0, match.start() - 2_500)
+            end = min(len(compact_dom), match.end() + 2_500)
+            excerpts.append(compact_dom[start:end])
+
+            if sum(len(excerpt) for excerpt in excerpts) >= MAX_DOM_CHARS - 3_000:
+                break
+
+        excerpts.append(compact_dom[-2_000:])
+        return "\n...\n".join(excerpts)[:MAX_DOM_CHARS]
 
     @staticmethod
     def _extract_json_object(text: str) -> str:
@@ -366,3 +406,4 @@ Rules:
             )
 
         return actions
+      

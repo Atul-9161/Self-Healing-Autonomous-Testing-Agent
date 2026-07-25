@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "approved-sources-reader": {
+      "command": "C:\\Users\\atulm\\OneDrive\\Desktop\\heal\\venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\Users\\atulm\\OneDrive\\Desktop\\heal\\approved_sources_mcp_server.py"
+      ]
+    }
+  }
+}

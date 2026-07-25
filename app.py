@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import streamlit as st
 
 from graph import run_workflow
+from mcp_assistant import answer_document_question
 
 
 st.set_page_config(
@@ -213,6 +214,29 @@ with right:
     )
 
 render_log(st.session_state.logs, log_placeholder)
+
+st.divider()
+st.markdown("### Document Assistant")
+st.caption(
+    "Answers use only the selected approved document through the local read-only MCP server."
+)
+
+document_question = st.text_area(
+    "Ask about the approved document",
+    placeholder="Summarize this document and list its key points.",
+    height=110,
+    key="document_question",
+)
+
+if st.button("Ask Document Assistant", type="secondary"):
+    try:
+        with st.spinner("Reading the approved document through MCP and preparing an answer..."):
+            document_answer, document_page_count = answer_document_question(document_question)
+
+        st.success(f"Answer generated from the approved {document_page_count}-page document.")
+        st.markdown(document_answer)
+    except Exception as exc:
+        st.error(f"Document Assistant could not answer: {exc}")
 
 if run_clicked:
     try:
